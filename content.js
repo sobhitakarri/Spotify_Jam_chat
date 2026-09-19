@@ -111,11 +111,18 @@
     }
   }
 
-  // Load storage settings
+  // Load storage settings & restore active Jam session
   if (typeof chrome !== 'undefined' && chrome.storage) {
-    chrome.storage.local.get(['serverUrl', 'spotifyUsername'], (res) => {
+    chrome.storage.local.get(['serverUrl', 'spotifyUsername', 'activeJamRoom'], (res) => {
       if (res.serverUrl) state.serverUrl = res.serverUrl;
       if (res.spotifyUsername) state.nickname = res.spotifyUsername;
+      if (res.activeJamRoom) {
+        state.activeJamId = res.activeJamRoom;
+        console.log('[Spotify Jam Chat] Restored active Jam room from storage:', res.activeJamRoom);
+      } else {
+        state.activeJamId = 'spotify_jam_session';
+      }
+      detectJamSession();
     });
 
     chrome.storage.onChanged.addListener((changes) => {
@@ -127,6 +134,10 @@
       if (changes.spotifyUsername) {
         state.nickname = changes.spotifyUsername.newValue;
       }
+      if (changes.activeJamRoom) {
+        state.activeJamId = changes.activeJamRoom.newValue;
+        detectJamSession();
+      }
     });
 
     // Listen for force join from popup
@@ -134,6 +145,7 @@
       chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         if (request.type === 'FORCE_JOIN_JAM' && request.jamId) {
           state.activeJamId = request.jamId;
+          chrome.storage.local.set({ activeJamRoom: request.jamId });
           const toggleBtn = document.getElementById('sjc-player-toggle-btn');
           if (toggleBtn) toggleBtn.style.display = 'inline-flex';
           updateRoomBannerUI();
@@ -177,22 +189,18 @@
       jamId = state.activeJamId;
     }
 
-    const toggleBtn = document.getElementById('sjc-player-toggle-btn');
+    if (!jamId) {
+      jamId = 'spotify_jam_session';
+    }
 
-    if (jamId) {
-      if (state.activeJamId !== jamId) {
-        state.activeJamId = jamId;
-        console.log('[Spotify Jam Chat] Connected to Jam Session:', jamId);
-        if (typeof chrome !== 'undefined' && chrome.storage) {
-          chrome.storage.local.set({ activeJamRoom: jamId });
-        }
-        updateRoomBannerUI();
-        connectToRealtime();
-      }
-      if (toggleBtn) toggleBtn.style.display = 'inline-flex';
-    } else {
-      // Hide button if no Jam is active
-      if (toggleBtn) toggleBtn.style.display = 'none';
+    state.activeJamId = jamId;
+    const toggleBtn = document.getElementById('sjc-player-toggle-btn');
+    if (toggleBtn) {
+      toggleBtn.style.display = 'inline-flex';
+    }
+
+    if (state.activeJamId && (!state.socket || !state.socket.connected)) {
+      connectToRealtime();
     }
   }
 
