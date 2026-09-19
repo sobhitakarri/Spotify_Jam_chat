@@ -298,12 +298,14 @@
     }
   }
 
-  // 4. Update Partner Connection Lock State UI
+  // 4. Update Partner Connection Lock State UI & Auto-Open Drawer on Partner Join
   function updatePresenceUI() {
     const badge = document.getElementById('sjc-presence-badge');
     const lockBanner = document.getElementById('sjc-lock-banner');
     const inputField = document.getElementById('sjc-input-field');
     const sendBtn = document.getElementById('sjc-send-btn');
+    const panel = document.getElementById('sjc-chat-panel');
+    const toggleBtn = document.getElementById('sjc-player-toggle-btn');
 
     if (state.onlineCount >= 2) {
       // Unlocked State: Partner is connected!
@@ -326,6 +328,14 @@
         inputField.placeholder = "Type a message to Jam partner...";
       }
       if (sendBtn) sendBtn.disabled = false;
+
+      // Automatically open/reveal the chat drawer on partner connection!
+      if (panel && !state.isPanelOpen) {
+        state.isPanelOpen = true;
+        panel.classList.add('sjc-visible');
+        if (toggleBtn) toggleBtn.classList.add('active');
+        showToastNotification('🎉 Jam partner connected! Chat opened.', 'Jam');
+      }
     } else {
       // Locked State: Waiting for partner!
       if (badge) {
