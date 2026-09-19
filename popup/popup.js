@@ -26,12 +26,19 @@ document.addEventListener('DOMContentLoaded', () => {
   // Manual Jam Join
   if (joinJamBtn && manualJamInput) {
     joinJamBtn.addEventListener('click', () => {
-      const code = manualJamInput.value.trim();
+      let code = manualJamInput.value.trim();
       if (code) {
+        // Extract clean code if user pasted a Spotify Jam link (e.g. open.spotify.com/jam/ABC123XYZ)
+        const match = code.match(/\/jam\/([a-zA-Z0-9_-]+)/);
+        if (match && match[1]) {
+          code = match[1];
+        }
+
         chrome.storage.local.set({ activeJamRoom: code }, () => {
-          jamStatus.textContent = `Joined Jam Room: ${code}`;
+          jamStatus.textContent = `Active Jam Room: ${code}`;
           jamStatus.style.color = '#1DB954';
-          // Send message to active Spotify tab to force enable chat
+          
+          // Send message to Spotify tab to activate chat for this exact room
           chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
             if (tabs[0] && tabs[0].url.includes('spotify.com')) {
               chrome.tabs.sendMessage(tabs[0].id, { type: 'FORCE_JOIN_JAM', jamId: code });

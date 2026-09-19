@@ -1,6 +1,6 @@
 // Spotify Jam Chat - Content Script Injected into open.spotify.com
 
-(function() {
+(function () {
   console.log('[Spotify Jam Chat] Extension content script initialized!');
 
   // State
@@ -38,7 +38,7 @@
 
       osc.start();
       osc.stop(ctx.currentTime + 0.25);
-    } catch(e) {
+    } catch (e) {
       // Audio context ignored if not user-interacted
     }
   }
@@ -67,11 +67,7 @@
 
     chrome.storage.onChanged.addListener((changes) => {
       if (changes.nickname) state.nickname = changes.nickname.newValue;
-      if (changes.serverUrl) {
-        state.serverUrl = changes.serverUrl.newValue;
-        console.log('[Spotify Jam Chat] Server URL changed to:', state.serverUrl);
-        connectToRealtime();
-      }
+      if (changes.serverUrl) state.serverUrl = changes.serverUrl.newValue;
       if (changes.soundEnabled) state.soundEnabled = changes.soundEnabled.newValue;
     });
   }
@@ -90,10 +86,10 @@
     // 2. Inspect Spotify DOM elements for active Jam indicators (e.g. Social Session icon, Jam badge, Jam bar)
     if (!jamId) {
       const jamHeaderBtn = document.querySelector('button[aria-label*="Jam"]') ||
-                           document.querySelector('button[aria-label*="social session"]') ||
-                           document.querySelector('[data-testid="social-session-button"]');
+        document.querySelector('button[aria-label*="social session"]') ||
+        document.querySelector('[data-testid="social-session-button"]');
 
-      const jamTextEl = Array.from(document.querySelectorAll('span, div, button')).find(el => 
+      const jamTextEl = Array.from(document.querySelectorAll('span, div, button')).find(el =>
         el.textContent && (el.textContent.includes('In a Jam') || el.textContent.includes('Jam session'))
       );
 
@@ -115,16 +111,21 @@
             }
           }
         }
-      } catch (e) {}
+      } catch (e) { }
+    }
+
+    // 4. Fallback: If user manually joined a room code via Popup or Jam Link, preserve it!
+    if (!jamId && state.activeJamId) {
+      jamId = state.activeJamId;
     }
 
     const toggleBtn = document.getElementById('sjc-player-toggle-btn');
 
     if (jamId) {
-      // User is in a Jam! Show the chat icon
+      // Active Jam Room! Show the chat icon & connect to room
       if (state.activeJamId !== jamId) {
         state.activeJamId = jamId;
-        console.log('[Spotify Jam Chat] User is in a Jam! Session ID:', jamId);
+        console.log('[Spotify Jam Chat] Active Jam Room:', jamId);
         if (typeof chrome !== 'undefined' && chrome.storage) {
           chrome.storage.local.set({ activeJamRoom: jamId });
         }
@@ -135,16 +136,9 @@
         toggleBtn.style.display = 'inline-flex';
       }
     } else {
-      // User is NOT in a Jam. Hide the chat icon by default
-      state.activeJamId = null;
+      // No active Jam room set. Hide button until Jam is started or joined
       if (toggleBtn) {
         toggleBtn.style.display = 'none';
-      }
-      // If chat panel was open, close it
-      const panel = document.getElementById('sjc-chat-panel');
-      if (panel && state.isPanelOpen) {
-        panel.classList.remove('sjc-visible');
-        state.isPanelOpen = false;
       }
     }
   }
@@ -180,7 +174,7 @@
       state.broadcastChannel.close();
     }
     state.broadcastChannel = new BroadcastChannel(`sjc_jam_${state.activeJamId}`);
-    
+
     // Announce join to other tabs
     setTimeout(() => {
       if (state.broadcastChannel) {
@@ -253,7 +247,7 @@
       } else {
         console.warn('[Spotify Jam Chat] Socket.IO client library script missing from content scripts context.');
       }
-    } catch(err) {
+    } catch (err) {
       console.log('[Spotify Jam Chat] Socket connection exception:', err);
     }
   }
@@ -352,7 +346,7 @@
 
     // 3. Inject Toggle Button Right Beside Spotify's Music Player Controls
     tryInjectToggleBtn();
-    
+
     // Periodically re-check DOM injection in case Spotify single-page app re-renders player bar
     setInterval(tryInjectToggleBtn, 2000);
     setInterval(detectJamSession, 3000);
@@ -363,15 +357,15 @@
     if (document.getElementById('sjc-player-toggle-btn')) return;
 
     // 1. Try finding extra controls near Queue, Lyrics, or Connect Device buttons in bottom player bar
-    const queueBtn = document.querySelector('button[aria-label*="Queue"]') || 
-                     document.querySelector('button[aria-label*="queue"]') ||
-                     document.querySelector('button[data-testid="control-button-queue"]');
+    const queueBtn = document.querySelector('button[aria-label*="Queue"]') ||
+      document.querySelector('button[aria-label*="queue"]') ||
+      document.querySelector('button[data-testid="control-button-queue"]');
 
     const lyricsBtn = document.querySelector('button[aria-label*="Lyrics"]') ||
-                      document.querySelector('button[aria-label*="lyrics"]');
+      document.querySelector('button[aria-label*="lyrics"]');
 
     const connectBtn = document.querySelector('button[aria-label*="Connect"]') ||
-                       document.querySelector('button[aria-label*="device"]');
+      document.querySelector('button[aria-label*="device"]');
 
     let playerControlArea = null;
     if (queueBtn && queueBtn.parentElement) {
@@ -381,7 +375,7 @@
     } else if (connectBtn && connectBtn.parentElement) {
       playerControlArea = connectBtn.parentElement;
     } else {
-      playerControlArea = 
+      playerControlArea =
         document.querySelector('[data-testid="now-playing-bar"] > div:last-child') ||
         document.querySelector('.main-nowPlayingBar-extraControls') ||
         document.querySelector('footer > div:last-child') ||
@@ -506,7 +500,7 @@
 
   function emitTypingStatus() {
     if (state.typingTimeout) clearTimeout(state.typingTimeout);
-    
+
     if (state.broadcastChannel) {
       state.broadcastChannel.postMessage({
         type: 'TYPING_STATUS',
