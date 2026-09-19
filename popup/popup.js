@@ -1,65 +1,47 @@
 document.addEventListener('DOMContentLoaded', () => {
-  const nicknameInput = document.getElementById('nickname');
   const serverUrlInput = document.getElementById('serverUrl');
-  const soundToggle = document.getElementById('soundToggle');
+  const userDisplayName = document.getElementById('userDisplayName');
   const saveBtn = document.getElementById('saveBtn');
   const jamStatus = document.getElementById('jamStatus');
+  const presenceStatus = document.getElementById('presenceStatus');
 
-  const manualJamInput = document.getElementById('manualJamInput');
-  const joinJamBtn = document.getElementById('joinJamBtn');
+  const defaultRenderUrl = 'https://spotify-jam-chat-2ude.onrender.com';
 
   // Load existing settings
-  chrome.storage.local.get(['nickname', 'serverUrl', 'soundEnabled', 'activeJamRoom'], (res) => {
-    if (res.nickname) nicknameInput.value = res.nickname;
-    if (res.serverUrl) serverUrlInput.value = res.serverUrl;
-    if (res.soundEnabled !== undefined) soundToggle.checked = res.soundEnabled;
+  chrome.storage.local.get(['serverUrl', 'spotifyUsername', 'activeJamRoom', 'onlineCount'], (res) => {
+    serverUrlInput.value = res.serverUrl || defaultRenderUrl;
+
+    if (res.spotifyUsername) {
+      userDisplayName.textContent = res.spotifyUsername;
+    } else {
+      userDisplayName.textContent = 'Spotify User';
+    }
 
     if (res.activeJamRoom) {
-      jamStatus.textContent = `Active Jam Room: ${res.activeJamRoom}`;
+      jamStatus.textContent = `Jam Room: ${res.activeJamRoom}`;
       jamStatus.style.color = '#1DB954';
-      if (manualJamInput) manualJamInput.value = res.activeJamRoom;
     } else {
-      jamStatus.textContent = 'Open open.spotify.com to join/detect Jam chat!';
+      jamStatus.textContent = 'Open open.spotify.com in a Jam to connect!';
+    }
+
+    if (res.onlineCount >= 2) {
+      presenceStatus.textContent = `🟢 Connected with Jam Partner (${res.onlineCount} Online)`;
+      presenceStatus.classList.add('online');
+    } else {
+      presenceStatus.textContent = `⏳ Waiting for Jam Partner to join...`;
+      presenceStatus.classList.remove('online');
     }
   });
 
-  // Manual Jam Join
-  if (joinJamBtn && manualJamInput) {
-    joinJamBtn.addEventListener('click', () => {
-      let code = manualJamInput.value.trim();
-      if (code) {
-        // Extract clean code if user pasted a Spotify Jam link (e.g. open.spotify.com/jam/ABC123XYZ)
-        const match = code.match(/\/jam\/([a-zA-Z0-9_-]+)/);
-        if (match && match[1]) {
-          code = match[1];
-        }
-
-        chrome.storage.local.set({ activeJamRoom: code }, () => {
-          jamStatus.textContent = `Active Jam Room: ${code}`;
-          jamStatus.style.color = '#1DB954';
-          
-          // Send message to Spotify tab to activate chat for this exact room
-          chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-            if (tabs[0] && tabs[0].url.includes('spotify.com')) {
-              chrome.tabs.sendMessage(tabs[0].id, { type: 'FORCE_JOIN_JAM', jamId: code });
-            }
-          });
-        });
-      }
-    });
-  }
-
-  // Save settings
+  // Save server settings
   saveBtn.addEventListener('click', () => {
-    const nickname = nicknameInput.value.trim() || 'Viber';
-    const serverUrl = serverUrlInput.value.trim() || 'http://localhost:3000';
-    const soundEnabled = soundToggle.checked;
+    const serverUrl = serverUrlInput.value.trim() || defaultRenderUrl;
 
-    chrome.storage.local.set({ nickname, serverUrl, soundEnabled }, () => {
+    chrome.storage.local.set({ serverUrl }, () => {
       saveBtn.textContent = 'Saved! ✓';
       saveBtn.style.backgroundColor = '#1ed760';
       setTimeout(() => {
-        saveBtn.textContent = 'Save Settings';
+        saveBtn.textContent = 'Save Server Settings';
         saveBtn.style.backgroundColor = '#1DB954';
       }, 1500);
     });

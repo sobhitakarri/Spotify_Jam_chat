@@ -126,12 +126,12 @@
 /* Chat Box Panel - Docked directly beside/above Music Player Bar */
 #sjc-chat-panel {
   position: fixed;
-  bottom: 90px; /* Right above Spotify's Now Playing Music Bar */
+  bottom: 90px;
   right: 20px;
-  width: 340px;
-  height: 480px;
+  width: 350px;
+  height: 500px;
   max-height: calc(100vh - 110px);
-  background: rgba(18, 18, 18, 0.95);
+  background: rgba(18, 18, 18, 0.96);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   border: 1px solid var(--sjc-border);
@@ -178,19 +178,24 @@
   letter-spacing: -0.2px;
 }
 
-.sjc-jam-indicator {
+.sjc-presence-badge {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  background: rgba(29, 185, 84, 0.15);
-  color: var(--sjc-green);
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--sjc-subtext);
   font-size: 11px;
   padding: 2px 8px;
   border-radius: 10px;
   font-weight: 600;
 }
 
-.sjc-jam-indicator::before {
+.sjc-presence-badge.online {
+  background: rgba(29, 185, 84, 0.15);
+  color: var(--sjc-green);
+}
+
+.sjc-presence-badge.online::before {
   content: "";
   width: 6px;
   height: 6px;
@@ -217,24 +222,24 @@
   background: var(--sjc-surface-hover);
 }
 
-/* Active Jam Room Info Banner */
-.sjc-room-banner {
-  background: rgba(255, 255, 255, 0.03);
-  padding: 8px 16px;
+/* Partner Lock State Banner */
+.sjc-lock-banner {
+  background: rgba(229, 169, 60, 0.12);
+  border-bottom: 1px solid rgba(229, 169, 60, 0.2);
+  color: #E5A93C;
+  padding: 8px 14px;
   font-size: 11px;
-  color: var(--sjc-subtext);
+  font-weight: 600;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  border-bottom: 1px solid var(--sjc-border);
+  gap: 8px;
+  transition: all 0.3s ease;
 }
 
-.sjc-room-code {
-  font-family: monospace;
-  background: #282828;
-  color: #FFF;
-  padding: 2px 6px;
-  border-radius: 4px;
+.sjc-lock-banner.unlocked {
+  background: rgba(29, 185, 84, 0.12);
+  border-bottom: 1px solid rgba(29, 185, 84, 0.2);
+  color: var(--sjc-green);
 }
 
 /* Chat Messages Feed */
@@ -305,13 +310,26 @@
   border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
-.sjc-msg-time {
+/* Status Ticks (Sending 🕒 -> Sent ✓ -> Read ✓✓) */
+.sjc-msg-meta {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
   font-size: 9px;
-  opacity: 0.75;
+  opacity: 0.8;
   margin-top: 4px;
-  display: block;
-  text-align: right;
 }
+
+.sjc-msg-tick {
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.sjc-msg-tick.sending { color: rgba(0, 0, 0, 0.5); }
+.sjc-msg-tick.sent { color: rgba(0, 0, 0, 0.75); }
+.sjc-msg-tick.read { color: #000000; font-weight: 900; }
 
 .sjc-system-msg {
   align-self: center;
@@ -393,6 +411,12 @@
   background: #333333;
 }
 
+.sjc-input-field:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background: #1c1c1c;
+}
+
 .sjc-emoji-btn {
   position: absolute;
   right: 10px;
@@ -429,8 +453,11 @@
   transform: scale(1.08);
 }
 
-.sjc-send-btn:active {
-  transform: scale(0.95);
+.sjc-send-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  transform: none;
+  background: #333;
 }
 
 /* Quick Emoji Picker Drawer */

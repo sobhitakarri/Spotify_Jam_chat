@@ -33,7 +33,7 @@ body {
 }
 
 .logo h2 {
-  font-size: 16px;
+  font-size: 15px;
   margin: 0;
   font-weight: 700;
 }
@@ -54,6 +54,26 @@ body {
   gap: 12px;
 }
 
+.info-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--surface);
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  font-size: 12px;
+}
+
+.info-label {
+  color: var(--text-secondary);
+}
+
+.info-value {
+  font-weight: 600;
+  color: var(--spotify-green);
+}
+
 .form-group {
   display: flex;
   flex-direction: column;
@@ -61,7 +81,7 @@ body {
 }
 
 .form-group label {
-  font-size: 12px;
+  font-size: 11px;
   color: var(--text-secondary);
 }
 
@@ -71,7 +91,7 @@ body {
   border-radius: 6px;
   padding: 8px 10px;
   color: var(--text-primary);
-  font-size: 13px;
+  font-size: 12px;
   outline: none;
   transition: border-color 0.2s;
 }
@@ -80,72 +100,33 @@ body {
   border-color: var(--spotify-green);
 }
 
-.toggle-group {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  font-size: 13px;
-  padding: 4px 0;
-}
-
-/* Toggle Switch */
-.switch {
-  position: relative;
-  display: inline-block;
-  width: 40px;
-  height: 22px;
-}
-
-.switch input {
-  opacity: 0;
-  width: 0;
-  height: 0;
-}
-
-.slider {
-  position: absolute;
-  cursor: pointer;
-  top: 0; left: 0; right: 0; bottom: 0;
-  background-color: #333;
-  transition: .3s;
-  border-radius: 22px;
-}
-
-.slider:before {
-  position: absolute;
-  content: "";
-  height: 16px;
-  width: 16px;
-  left: 3px;
-  bottom: 3px;
-  background-color: white;
-  transition: .3s;
-  border-radius: 50%;
-}
-
-input:checked + .slider {
-  background-color: var(--spotify-green);
-}
-
-input:checked + .slider:before {
-  transform: translateX(18px);
-}
-
 .jam-info-card {
   background: var(--surface);
   border-radius: 8px;
-  padding: 10px;
+  padding: 12px;
   font-size: 12px;
   border-left: 3px solid var(--spotify-green);
 }
 
 .card-title {
-  font-weight: 600;
+  font-weight: 700;
   margin-bottom: 4px;
 }
 
 .card-status {
   color: var(--text-secondary);
+  font-size: 11px;
+}
+
+.presence-status {
+  margin-top: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #E5A93C;
+}
+
+.presence-status.online {
+  color: var(--spotify-green);
 }
 
 .btn-primary {
