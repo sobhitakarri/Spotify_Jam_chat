@@ -40,26 +40,75 @@
     } catch(e) {}
   }
 
-  // 1. Auto-Extract Official Spotify Display Name from DOM
+  // 1. Auto-Extract Official Spotify Display Name from DOM & LocalStorage
   function extractSpotifyUsername() {
-    try {
-      const userWidget = document.querySelector('[data-testid="user-widget-link"]') ||
-                         document.querySelector('[data-testid="user-widget-dropdown-button"]') ||
-                         document.querySelector('button[aria-label*="Profile"]') ||
-                         document.querySelector('button[aria-label*="profile"]');
+    let name = null;
 
-      if (userWidget) {
-        let name = userWidget.textContent || userWidget.getAttribute('aria-label') || '';
-        name = name.replace(/^Profile:\s*/i, '').replace(/profile/i, '').trim();
-        if (name && name.length > 1 && name !== state.nickname) {
-          state.nickname = name;
-          console.log('[Spotify Jam Chat] Extracted Spotify Display Name:', name);
-          if (typeof chrome !== 'undefined' && chrome.storage) {
-            chrome.storage.local.set({ spotifyUsername: name });
+    // Strategy A: DOM Selectors for Spotify User Profile
+    const selectors = [
+      '[data-testid="user-widget-link"]',
+      '[data-testid="user-widget-dropdown-button"]',
+      'button[data-testid="user-widget-link"] span',
+      'button[aria-label*="Profile" i]',
+      'button[aria-label*="profile" i]',
+      'figure[data-testid="user-widget-avatar"]',
+      'header figure'
+    ];
+
+    for (const sel of selectors) {
+      const el = document.querySelector(sel);
+      if (el) {
+        // Check text content or parent element text
+        let txt = el.textContent || el.getAttribute('aria-label') || el.parentElement?.textContent || '';
+        txt = txt.replace(/^Profile:\s*/i, '').replace(/profile/i, '').replace(/account/i, '').trim();
+        if (txt && txt.length >= 2 && !txt.toLowerCase().includes('spotify') && !txt.toLowerCase().includes('install')) {
+          name = txt;
+          break;
+        }
+      }
+    }
+
+    // Strategy B: Check aria-labels of all top header buttons
+    if (!name) {
+      const headerBtns = document.querySelectorAll('header button, [role="banner"] button');
+      for (const btn of headerBtns) {
+        const aria = btn.getAttribute('aria-label') || '';
+        if (aria && !aria.includes('Notification') && !aria.includes('Install') && !aria.includes('Jam') && !aria.includes('Search') && !aria.includes('Home')) {
+          const clean = aria.replace(/^Profile:\s*/i, '').replace(/profile/i, '').trim();
+          if (clean && clean.length >= 2) {
+            name = clean;
+            break;
           }
         }
       }
-    } catch(e) {}
+    }
+
+    // Strategy C: Search localStorage for cached Spotify user profile object
+    if (!name) {
+      try {
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i);
+          if (key.includes('user') || key.includes('profile') || key.includes('session')) {
+            const val = localStorage.getItem(key);
+            if (val && val.includes('display_name')) {
+              const match = val.match(/"display_name"\s*:\s*"([^"]+)"/);
+              if (match && match[1]) {
+                name = match[1];
+                break;
+              }
+            }
+          }
+        }
+      } catch (e) {}
+    }
+
+    if (name && name !== state.nickname) {
+      state.nickname = name;
+      console.log('[Spotify Jam Chat] Successfully extracted Spotify Display Name:', name);
+      if (typeof chrome !== 'undefined' && chrome.storage) {
+        chrome.storage.local.set({ spotifyUsername: name });
+      }
+    }
   }
 
   // Load storage settings
