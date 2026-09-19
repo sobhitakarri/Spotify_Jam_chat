@@ -156,20 +156,25 @@
     }
   }
 
-  // 2. Auto-Detect Active Spotify Jam Session Token & Track Signature
+  // 2. Auto-Detect Active Spotify Jam Session Token & Room Channel
   function detectJamSession() {
     extractSpotifyUsername();
 
     const url = window.location.href;
     let jamId = null;
 
-    // Strategy 1: Check URL for Jam parameters (e.g. open.spotify.com/jam/ABC123XYZ)
+    // Strategy 1: Check URL for explicit Jam parameters (e.g. open.spotify.com/jam/ABC123XYZ)
     const jamMatch = url.match(/\/jam\/([a-zA-Z0-9_-]+)/) || url.match(/[?&]jam=([a-zA-Z0-9_-]+)/);
     if (jamMatch && jamMatch[1]) {
       jamId = jamMatch[1];
     }
 
-    // Strategy 2: Check localStorage / sessionStorage for Spotify Jam tokens
+    // Strategy 2: Check stored custom room from extension popup
+    if (!jamId && state.activeJamId && state.activeJamId !== 'spotify_jam_session' && state.activeJamId !== 'spotify_jam_live_room') {
+      jamId = state.activeJamId;
+    }
+
+    // Strategy 3: Check localStorage / sessionStorage for Spotify Jam tokens
     if (!jamId) {
       try {
         for (let i = 0; i < localStorage.length; i++) {
@@ -188,33 +193,14 @@
       } catch (e) {}
     }
 
-    // Strategy 3: Check stored activeJamRoom from popup settings
-    if (!jamId && state.activeJamId && state.activeJamId !== 'spotify_jam_session') {
-      jamId = state.activeJamId;
-    }
-
-    // Strategy 4: Automatic Currently-Playing Track Room Matching
+    // Default Unified Room: Guarantees both Jam participants connect to the exact same room channel!
     if (!jamId) {
-      const nowPlayingWidget = document.querySelector('[data-testid="now-playing-widget"]') ||
-                               document.querySelector('[data-testid="now-playing-bar"]') ||
-                               document.querySelector('.now-playing-bar');
-      
-      let trackText = nowPlayingWidget ? nowPlayingWidget.textContent : document.title;
-      if (trackText) {
-        const clean = trackText.toLowerCase().replace(/[^a-z0-9]/g, '_').replace(/_+/g, '_').substring(0, 35);
-        if (clean && clean.length > 3) {
-          jamId = 'jam_track_' + clean;
-        }
-      }
-    }
-
-    if (!jamId) {
-      jamId = 'spotify_jam_session';
+      jamId = 'spotify_jam_live_room';
     }
 
     if (state.activeJamId !== jamId) {
       state.activeJamId = jamId;
-      console.log('[Spotify Jam Chat] Unified Jam Room Key:', jamId);
+      console.log('[Spotify Jam Chat] Connected to Unified Jam Room:', jamId);
       if (typeof chrome !== 'undefined' && chrome.storage) {
         chrome.storage.local.set({ activeJamRoom: jamId });
       }
