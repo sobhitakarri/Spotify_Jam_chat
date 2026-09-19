@@ -156,44 +156,72 @@
     }
   }
 
-  // 2. Auto-Detect Active Spotify Jam Session Token
+  // 2. Auto-Detect Active Spotify Jam Session Token & Track Signature
   function detectJamSession() {
     extractSpotifyUsername();
 
     const url = window.location.href;
     let jamId = null;
 
-    // Check URL for Jam parameters
+    // Strategy 1: Check URL for Jam parameters (e.g. open.spotify.com/jam/ABC123XYZ)
     const jamMatch = url.match(/\/jam\/([a-zA-Z0-9_-]+)/) || url.match(/[?&]jam=([a-zA-Z0-9_-]+)/);
     if (jamMatch && jamMatch[1]) {
       jamId = jamMatch[1];
     }
 
-    // Inspect Spotify DOM elements for active Jam indicators
+    // Strategy 2: Check localStorage / sessionStorage for Spotify Jam tokens
     if (!jamId) {
-      const jamHeaderBtn = document.querySelector('button[aria-label*="Jam"]') ||
-                           document.querySelector('button[aria-label*="social session"]') ||
-                           document.querySelector('[data-testid="social-session-button"]');
-
-      const jamTextEl = Array.from(document.querySelectorAll('span, div, button')).find(el => 
-        el.textContent && (el.textContent.includes('In a Jam') || el.textContent.includes('Jam session'))
-      );
-
-      if (jamHeaderBtn || jamTextEl) {
-        jamId = 'active_spotify_jam';
-      }
+      try {
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i);
+          if (key.includes('jam') || key.includes('social') || key.includes('session')) {
+            const val = localStorage.getItem(key);
+            if (val && val.length > 5) {
+              const match = val.match(/"([a-zA-Z0-9_-]{6,})"/);
+              if (match && match[1]) {
+                jamId = match[1];
+                break;
+              }
+            }
+          }
+        }
+      } catch (e) {}
     }
 
-    // Fallback to active room stored in state
-    if (!jamId && state.activeJamId) {
+    // Strategy 3: Check stored activeJamRoom from popup settings
+    if (!jamId && state.activeJamId && state.activeJamId !== 'spotify_jam_session') {
       jamId = state.activeJamId;
+    }
+
+    // Strategy 4: Automatic Currently-Playing Track Room Matching
+    if (!jamId) {
+      const nowPlayingWidget = document.querySelector('[data-testid="now-playing-widget"]') ||
+                               document.querySelector('[data-testid="now-playing-bar"]') ||
+                               document.querySelector('.now-playing-bar');
+      
+      let trackText = nowPlayingWidget ? nowPlayingWidget.textContent : document.title;
+      if (trackText) {
+        const clean = trackText.toLowerCase().replace(/[^a-z0-9]/g, '_').replace(/_+/g, '_').substring(0, 35);
+        if (clean && clean.length > 3) {
+          jamId = 'jam_track_' + clean;
+        }
+      }
     }
 
     if (!jamId) {
       jamId = 'spotify_jam_session';
     }
 
-    state.activeJamId = jamId;
+    if (state.activeJamId !== jamId) {
+      state.activeJamId = jamId;
+      console.log('[Spotify Jam Chat] Unified Jam Room Key:', jamId);
+      if (typeof chrome !== 'undefined' && chrome.storage) {
+        chrome.storage.local.set({ activeJamRoom: jamId });
+      }
+      updateRoomBannerUI();
+      connectToRealtime();
+    }
+
     const toggleBtn = document.getElementById('sjc-player-toggle-btn');
     if (toggleBtn) {
       toggleBtn.style.display = 'inline-flex';
