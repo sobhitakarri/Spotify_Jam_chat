@@ -481,24 +481,30 @@
     setInterval(detectJamSession, 3000);
   }
 
-  // Inject Player Toggle Button
+  // Inject Player Toggle Button with re-render detection
   function tryInjectToggleBtn() {
-    if (document.getElementById('sjc-player-toggle-btn')) return;
+    const existing = document.getElementById('sjc-player-toggle-btn');
+    if (existing && document.body.contains(existing)) return;
+    if (existing) existing.remove(); // Remove orphaned button if Spotify detached it
 
-    const queueBtn = document.querySelector('button[aria-label*="Queue"]') || 
-                     document.querySelector('button[aria-label*="queue"]') ||
+    const queueBtn = document.querySelector('button[aria-label*="Queue" i]') || 
+                     document.querySelector('button[aria-label*="queue" i]') ||
                      document.querySelector('button[data-testid="control-button-queue"]');
 
-    const lyricsBtn = document.querySelector('button[aria-label*="Lyrics"]') ||
-                      document.querySelector('button[aria-label*="lyrics"]');
+    const lyricsBtn = document.querySelector('button[aria-label*="Lyrics" i]') ||
+                      document.querySelector('button[aria-label*="lyrics" i]');
 
-    const connectBtn = document.querySelector('button[aria-label*="Connect"]') ||
-                       document.querySelector('button[aria-label*="device"]');
+    const connectBtn = document.querySelector('button[aria-label*="Connect" i]') ||
+                       document.querySelector('button[aria-label*="device" i]');
+
+    const fullScreenBtn = document.querySelector('button[aria-label*="Full screen" i]') ||
+                          document.querySelector('button[aria-label*="fullscreen" i]');
 
     let playerControlArea = null;
     if (queueBtn && queueBtn.parentElement) playerControlArea = queueBtn.parentElement;
     else if (lyricsBtn && lyricsBtn.parentElement) playerControlArea = lyricsBtn.parentElement;
     else if (connectBtn && connectBtn.parentElement) playerControlArea = connectBtn.parentElement;
+    else if (fullScreenBtn && fullScreenBtn.parentElement) playerControlArea = fullScreenBtn.parentElement;
     else {
       playerControlArea = 
         document.querySelector('[data-testid="now-playing-bar"] > div:last-child') ||
@@ -510,6 +516,7 @@
     toggleBtn.id = 'sjc-player-toggle-btn';
     toggleBtn.className = 'sjc-player-toggle-btn';
     toggleBtn.title = 'Open Spotify Jam Chat';
+    toggleBtn.style.display = 'inline-flex';
     toggleBtn.innerHTML = `
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
         <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
@@ -520,9 +527,11 @@
 
     if (playerControlArea) {
       playerControlArea.insertBefore(toggleBtn, playerControlArea.firstChild);
+      console.log('[Spotify Jam Chat] Injected toggle button into player controls!');
     } else {
       toggleBtn.classList.add('sjc-floating-fallback-btn');
       document.body.appendChild(toggleBtn);
+      console.log('[Spotify Jam Chat] Injected floating fallback button!');
     }
   }
 
@@ -687,9 +696,14 @@
     document.addEventListener('DOMContentLoaded', () => {
       detectJamSession();
       injectChatUI();
+      tryInjectToggleBtn();
     });
   } else {
     detectJamSession();
     injectChatUI();
+    tryInjectToggleBtn();
   }
+
+  // Continuous 1-second DOM pulse to ensure button stays visible across track changes
+  setInterval(tryInjectToggleBtn, 1000);
 })();
